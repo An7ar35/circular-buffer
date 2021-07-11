@@ -7,9 +7,9 @@
 
 //======= VARIABLES =======
 #define BYTES        100000
-#define WRITE_CHUNKS   2680
-#define READ_CHUNKS   25540
-#define CBUFFER_SIZE   4000
+#define WRITE_CHUNKS   1000
+#define READ_CHUNKS    1000
+#define CBUFFER_SIZE   5000
 //=========================
 
 CircularBuffer_t cbuff;
@@ -149,7 +149,7 @@ static bool run( int round ) {
 
 //    printf( "\n=== IN ====\n" );
 //    for( size_t i = 0; i < BYTES; ++i ) {
-//        printf( "%d ", producer.buffer[i] );
+//        printf( "%d ", source.buffer[i] );
 //    }
 
     cbuff = CircularBuffer.create();
@@ -170,7 +170,7 @@ static bool run( int round ) {
     printBuffToFile( out, target.buffer, BYTES );
 
 //    printf( "\n=== OUT ====\n" );
-//    size_t diff = compareBuff( producer.buffer, consumer.buffer, BYTES );
+//    size_t diff = compareBuff( source.buffer, target.buffer, BYTES );
 //    printf( "\n===========\n" );
 
     bool same = checkEqual( source.buffer, target.buffer, BYTES );
