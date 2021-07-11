@@ -228,6 +228,21 @@ static size_t CircularBuffer_writeChunk( CircularBuffer_t * cbuff, const u_int8_
 #ifndef NDEBUG
         size_t old_pos = cbuff->position.write;
 #endif
+//        if( cbuff->position.read > cbuff->position.write ) { //no circling back
+//            memcpy( &cbuff->buffer[cbuff->position.write], src, length );
+//
+//        } else { //circling back (i.e. 1-2x chunks)
+//            const size_t free_chunk1 = cbuff->size - cbuff->position.write;
+//            const size_t chunk1_size = ( length <= free_chunk1 ? length : free_chunk1 );
+//
+//            memcpy( &cbuff->buffer[cbuff->position.write], src, chunk1_size );
+//
+//            if( length > free_chunk1 ) {
+//                const size_t chunk2_size = ( length - free_chunk1 );
+//                memcpy( &cbuff->buffer[ 0 ], &src[chunk1_size], chunk2_size );
+//            }
+//        }
+
         memcpy( &cbuff->buffer[cbuff->position.write], src, length );
         CircularBuffer_advanceWritePos( cbuff, length );
         bytes_writen = length;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "CircularBuffer.h"
 
@@ -11,6 +12,16 @@
 #define READ_CHUNKS    1000
 #define CBUFFER_SIZE   5000
 //=========================
+
+/**
+ * Get timestamp
+ * @return timestamp now
+ */
+u_int64_t getTime() {
+    struct timespec ts;
+    clock_gettime( 0, &ts );
+    return (u_int64_t) (ts.tv_sec * 1000000 + ts.tv_nsec / 1000);
+}
 
 CircularBuffer_t cbuff;
 
@@ -140,7 +151,7 @@ static void * launchConsumer() {
  * @param round Test number
  * @return Success
  */
-static bool run( int round ) {
+static bool run( int round, u_int64_t * time ) {
     int ret    = 0;
     FILE * in  = fopen( "in.txt", "w" );
     FILE * out = fopen( "out.txt", "w" );
@@ -155,6 +166,8 @@ static bool run( int round ) {
     cbuff = CircularBuffer.create();
     CircularBuffer.init( &cbuff, CBUFFER_SIZE );
 
+    u_int64_t start = getTime();
+
     if( ( ret = pthread_create( &source.thread, NULL, launchProducer, NULL ) ) != 0 ) {
         fprintf( stderr, "Failed to create producer thread (%d)\n", ret );
     }
@@ -166,6 +179,8 @@ static bool run( int round ) {
     pthread_join( target.thread, NULL );
     pthread_join( source.thread, NULL );
 
+    u_int64_t end = getTime();
+
     printBuffToFile( in, source.buffer, BYTES );
     printBuffToFile( out, target.buffer, BYTES );
 
@@ -173,20 +188,38 @@ static bool run( int round ) {
 //    size_t diff = compareBuff( source.buffer, target.buffer, BYTES );
 //    printf( "\n===========\n" );
 
-    bool same = checkEqual( source.buffer, target.buffer, BYTES );
-
-    printf( "ROUND #%d - Buffer check: %s\n", round, ( same ? "SAME" : "NOT SAME" ) );
-
     fclose( in );
     fclose( out );
-    return same;
+
+    if( time )
+        *time = ( end - start );
+
+    return checkEqual( source.buffer, target.buffer, BYTES );
 }
 
 int main() {
-    const int test_count = 100;
-    int       i          = 1;
+    const int test_count  = 100;
+    int       test_number = 0;
+    u_int64_t timers[test_count];
+    u_int64_t checks[test_count];
 
-    while( run( i++ ) && i <= test_count );
+    while( test_number < test_count ) {
+        checks[test_number] = run( test_number, &timers[test_number] );
+        ++test_number;
+    };
+
+    u_int64_t average = timers[0];
+
+    for( int i = 0; i < test_count; ++i ) {
+        printf( "Test #%d: %s (%lu)\n", i, ( checks[i] ? "\x1b[32mPASSED\033[0m" : "\x1b[31mFAILED\033[0m" ), timers[i] );
+
+        if( i > 0 ) {
+            average += timers[ i ];
+            average /= 2;
+        }
+    }
+
+    printf( "Average for %d tests: %lu\n", test_count, average );
 
     return 0;
 }
